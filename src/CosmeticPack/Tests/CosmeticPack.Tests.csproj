@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../PackContract.cs" Link="PackContract.cs" />
+    <Compile Include="../SkinJson.cs" Link="SkinJson.cs" />
+    <Compile Include="../AtlasLayout.cs" Link="AtlasLayout.cs" />
+    <Compile Include="../BoundedFileLog.cs" Link="BoundedFileLog.cs" />
+    <Compile Include="Program.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>../../../Contents/Resources/Data/Managed/Newtonsoft.Json.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+{
+  "generator": "built-in image_gen",
+  "created": "2026-10-16",
+  "assets": [
+    {
+      "id": "ramen",
+      "prompt": "Use case: stylized-concept. Asset type: game-ready flat flag cloth artwork for a small low-poly fishing boat in a moody maritime adventure. Generate ONE landscape flag design, aspect ratio 3:2. Primary request: a whimsical deep-sea ramen emblem: a bold ivory ramen bowl with two simple noodles curling like small sea tentacles, a tiny crescent-shaped fish cake and crossed chopsticks. Flat poster graphic, restrained angular hand-cut shapes, thick recognizable silhouette, no tiny details. Dark desaturated indigo field, warm ivory main emblem, rusty vermilion small accent; faded nautical screenprint feeling, minimal subtle grain, very high readability at 128 pixels. Artwork fills the entire rectangular image edge to edge; center emblem occupies central 65 percent with generous quiet margin. All ink opaque. No scene, no pole, no folds, no waving cloth, no perspective, no drop shadows, no glowing light, no letters, no text, no border, no branding, no watermark. This is the surface image for actual game UV mapping, not a mockup."
+    },
+    {
+      "id": "octopus",
+      "prompt": "Use case: stylized-concept. Asset type: game-ready flat flag cloth artwork for a small low-poly fishing boat in a moody nautical adventure. Generate ONE landscape design at aspect ratio 3:2. A whimsical ivory octopus proudly peeking out of an opened sardine tin, two bold curled tentacles draped outside, a small rolled lid. A readable single centered heraldic emblem, restrained angular hand-cut shapes, flat nautical screenprint, very subtle weathered ink grain. Desaturated deep teal background, warm cream main shapes, antique brass gold can accent. Large simple silhouettes readable at 128 pixels. Emblem fills central 65 percent of frame, quiet margin. Image edge to edge opaque background. No typography, letters, numbers, words, logos, watermark. No scene, no mockup, no actual cloth, no folds, no pole, no 3D, no glow, no lighting effects, no border. This is a flat surface texture for UV mapping."
+    },
+    {
+      "id": "moon",
+      "prompt": "Use case: stylized-concept. Asset type: game-ready flat flag cloth artwork for a small low-poly fishing boat in a moody nautical adventure. Generate ONE landscape design at aspect ratio 3:2. A playful mysterious moon courier emblem: one large cream crescent moon cradling a small sealed postal envelope with a tiny brass-gold fish-shaped seal, two bold wave marks below and three tiny simple stars above. Large centered heraldic symbol, restrained angular hand-cut silhouettes, flat vintage nautical screenprint, minimal subtle weathered ink grain. Deep desaturated aubergine purple background, warm ivory emblem, antique gold accent. Strong contrast and readable at 128 pixels, central emblem uses 65 percent of image with ample quiet margin. Image opaque and edge to edge. No text, typography, letters, numbers, labels, branding, watermark. No scene, no pole, no physical flag, no waving cloth, no folds, no perspective, no gradients, no glow, no shadows, no border. Flat surface texture for actual game UV mapping."
+    }
+  ]
+}

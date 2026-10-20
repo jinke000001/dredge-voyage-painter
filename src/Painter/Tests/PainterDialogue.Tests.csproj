@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../PainterDialogueProgram.cs" Link="PainterDialogueProgram.cs" />
+    <Compile Include="../PainterDialogueMetadata.cs" Link="PainterDialogueMetadata.cs" />
+    <Compile Include="Program.cs" />
+    <Reference Include="YarnSpinner"><HintPath>../../../Contents/Resources/Data/Managed/YarnSpinner.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="YarnSpinner.Unity"><HintPath>../../../Contents/Resources/Data/Managed/YarnSpinner.Unity.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="Google.Protobuf"><HintPath>../../../Contents/Resources/Data/Managed/Google.Protobuf.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>../../../Contents/Resources/Data/Managed/UnityEngine.CoreModule.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../FishingRules.cs" />
+    <Compile Include="../FishingTuning.cs" />
+    <Compile Include="../FishingHooks.cs" />
+    <Compile Include="../VoyageSettings.cs" />
+    <Compile Include="FishingTestDoubles.cs" />
+    <Compile Include="FishingTests.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>../../../Contents/Resources/Data/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

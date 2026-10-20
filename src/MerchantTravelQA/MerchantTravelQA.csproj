@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>Jinke.DredgeMerchantTravel.QA</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <NoStdLib>true</NoStdLib>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <FrameworkPathOverride>$(MSBuildThisFileDirectory)../../Contents/Resources/Data/Managed</FrameworkPathOverride>
+    <GameManagedDir>$(MSBuildThisFileDirectory)../../Contents/Resources/Data/Managed</GameManagedDir>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="*.cs" Exclude="._*" />
+    <Reference Include="mscorlib;System;System.Core;netstandard;Assembly-CSharp;Assembly-CSharp-firstpass;Newtonsoft.Json;UnityEngine;UnityEngine.CoreModule;UnityEngine.PhysicsModule;UnityEngine.IMGUIModule;UnityEngine.InputLegacyModule;UnityEngine.UIModule;UnityEngine.UI;UnityEngine.TextRenderingModule;Unity.TextMeshPro;Unity.Localization;Unity.ResourceManager;Unity.Addressables;Sirenix.Serialization;Sirenix.OdinInspector.Attributes;Cinemachine;InControl;YarnSpinner.Unity;YarnSpinner">
+      <HintPath>$(GameManagedDir)/%(Identity).dll</HintPath><Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

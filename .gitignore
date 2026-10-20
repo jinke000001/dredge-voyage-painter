@@ -1,0 +1,40 @@
+Contents/
+._*
+.DS_Store
+.venv/
+tools/dotnet/
+research/extracted/
+research/decompiled/
+research/reference-src/
+output/runtime/
+output/**/*.app/
+output/builds/**/*.dll
+research/evidence/**/*.dll
+research/evidence/asset-inventory.json
+research/evidence/rea-cosmetic-members.json
+research/evidence/rea-mechanics-members.json
+research/evidence/native-probe-*/*.png
+research/evidence/user-save-readonly-baseline*.json
+**/bin/
+**/obj/
+**/__pycache__/
+
+# Generated isolated merchant travel build/test artifacts.
+output/builds/*-merchant-travel/
+output/weaver-tests/
+output/DREDGE 商人传送体验版 — 启动.command
+
+# Public source snapshot: local game, evidence, launchers and build outputs stay private.
+/output/
+/research/evidence/
+**/decompiled/
+**/mechanics-decompiled/
+/src/NativeProbe/Tests/results/
+/src/NativeProbe/qa-helper-checks.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx

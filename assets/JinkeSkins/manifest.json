@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "skins": [
+    {"id":"ramen","name":"深海拉面","hullColor":"#D8BF94","roofColor":"#8C4436","flagFile":"ramen/flag.png"},
+    {"id":"octopus","name":"罐头章鱼","hullColor":"#76A49A","roofColor":"#C49B55","flagFile":"octopus/flag.png"},
+    {"id":"moon","name":"月航信使","hullColor":"#A398AD","roofColor":"#4D3859","flagFile":"moon/flag.png"}
+  ]
+}
