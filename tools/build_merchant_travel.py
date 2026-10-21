@@ -70,17 +70,31 @@ PAINTER_IDENTITY = {
     "COMPANY": ("Jinke Local Tests", "Jinke Local Tests"),
     "PRODUCT": ("DREDGE Merchant Travel QA 20261018", "DREDGE Voyage Painter QA 20261019"),
 }
+SHIP_STYLES_IDENTITY = {
+    "IDENTIFIER": ("local.jinke.dredge.merchanttravel.qa.20261018", "local.jinke.dredge.shipstyles.qa.20261021"),
+    "COMPANY": ("Jinke Local Tests", "Jinke Local Tests"),
+    "PRODUCT": ("DREDGE Merchant Travel QA 20261018", "DREDGE Ship Styles QA 20261021"),
+}
 PROFILE_IDENTITIES = {"voyage-experience": VOYAGE_IDENTITY, "voyage-painter": PAINTER_IDENTITY}
 PAINTER_SHARED_SOURCES = ("AtlasLayout.cs", "PackContract.cs", "SkinJson.cs", "SkinAssets.cs", "RendererOverrides.cs")
 PAINTER_ASSET_FILES = ("manifest.json", "ramen/flag.png", "octopus/flag.png", "moon/flag.png")
 PAINTER_ASSET_REL = "Resources/Data/StreamingAssets/JinkeSkins"
 
 
-def guard_source(profile: str) -> str:
+def identity_for(profile: str, identity_variant: str | None = None) -> dict:
     require_profile(profile)
+    if identity_variant is None:
+        return PROFILE_IDENTITIES.get(profile, {})
+    guard.require(profile == "voyage-painter" and identity_variant == "ship-styles", "Unknown fixed identity variant for this patch profile.")
+    return SHIP_STYLES_IDENTITY
+
+
+def guard_source(profile: str, identity_variant: str | None = None) -> str:
+    require_profile(profile)
+    identity = identity_for(profile, identity_variant)
     source = Path(__file__).with_name("merchant_travel_guard.py").read_text(encoding="utf-8")
-    if profile in PROFILE_IDENTITIES:
-        for name, (original, replacement) in PROFILE_IDENTITIES[profile].items():
+    if identity:
+        for name, (original, replacement) in identity.items():
             line = name + " = " + json.dumps(original)
             guard.require(source.count(line + "\n") == 1, "Guard identity declaration changed: " + name)
             source = source.replace(line + "\n", name + " = " + json.dumps(replacement) + "\n", 1)
@@ -88,12 +102,13 @@ def guard_source(profile: str) -> str:
     return source
 
 
-def guard_for_profile(profile: str):
+def guard_for_profile(profile: str, identity_variant: str | None = None):
     require_profile(profile)
+    identity_for(profile, identity_variant)
     if profile == "merchant-travel":
         return _merchant_guard
     selected = types.ModuleType("merchant_travel_guard_" + profile.replace("-", "_"))
-    exec(compile(guard_source(profile), "isolated-launch-guard", "exec"), selected.__dict__)
+    exec(compile(guard_source(profile, identity_variant), "isolated-launch-guard", "exec"), selected.__dict__)
     # All callers catch the same fail-closed exception while the functions and
     # constants stay bound to the selected module's isolated global namespace.
     selected.Refusal = _merchant_guard.Refusal
@@ -101,11 +116,11 @@ def guard_for_profile(profile: str):
 
 
 @contextmanager
-def profile_context(profile: str):
+def profile_context(profile: str, identity_variant: str | None = None):
     """Single-process build/QA context for the fixed audited identities."""
     global guard
     previous = guard
-    guard = guard_for_profile(profile)
+    guard = guard_for_profile(profile, identity_variant)
     try:
         yield guard
     finally:
@@ -196,16 +211,17 @@ def build_managed(staging: Path) -> tuple[Path, Path, dict]:
 
 def managed_sources() -> dict:
     result = {}
-    for project in ("MerchantTravel", "VoyageExperience", "Weaver"):
+    for project in ("MerchantTravel", "VoyageExperience", "ShipAppearance", "Weaver"):
         directory = ROOT / "src" / project
         if not directory.exists():
             continue
         for path in directory.rglob("*"):
             relative = path.relative_to(directory)
-            if any(part.lower() in ("bin", "obj", "tests") or guard.ignored(part) for part in relative.parts):
+            if any(part.lower() in ("bin", "obj") or part.lower().endswith("tests") or guard.ignored(part) for part in relative.parts):
                 continue
             guard.no_symlinks(path)
-            if path.is_file() and (path.suffix in (".cs", ".csproj") or path.name == "packages.lock.json"):
+            is_ship_resource = project == "ShipAppearance" and relative.parent == Path("Resources") and path.suffix == ".bin"
+            if path.is_file() and (path.suffix in (".cs", ".csproj") or path.name == "packages.lock.json" or is_ship_resource):
                 result[path.relative_to(ROOT).as_posix()] = guard.sha(path)
     # MerchantTravel.csproj compiles these shared appearance primitives into
     # the single runtime. Old F8 UI, preferences and logging stay excluded.
@@ -282,7 +298,8 @@ def patch_identity(app: Path, unity) -> dict:
     info = plistlib.loads(info_path.read_bytes())
     guard.require(info.get("CFBundleIdentifier") == "com.blacksaltgames.dredge" and info.get("CFBundleExecutable") == "DREDGE", "Unexpected original macOS identity.")
     info["CFBundleIdentifier"] = guard.IDENTIFIER
-    names = {VOYAGE_IDENTITY["IDENTIFIER"][1]: "DREDGE Voyage QA", PAINTER_IDENTITY["IDENTIFIER"][1]: "DREDGE Voyage Painter QA"}
+    names = {VOYAGE_IDENTITY["IDENTIFIER"][1]: "DREDGE Voyage QA", PAINTER_IDENTITY["IDENTIFIER"][1]: "DREDGE Voyage Painter QA",
+             SHIP_STYLES_IDENTITY["IDENTIFIER"][1]: "DREDGE Ship Styles QA"}
     info["CFBundleName"] = names.get(guard.IDENTIFIER, "DREDGE Merchant Travel QA")
     info_path.write_bytes(plistlib.dumps(info))
     return {"playerSettingsPathId": settings_id, "changedPlayerSettingsFields": ["companyName", "productName"], "otherObjectsByteIdentical": len(original_objects) - 1, "objectsBefore": original_objects, "objectsAfter": rewritten_objects}
@@ -436,12 +453,12 @@ def make_launcher(app: Path, launcher: Path) -> None:
     launcher.chmod(0o755)
 
 
-def build(name: str, profile: str = "merchant-travel") -> dict:
-    with profile_context(profile):
-        return _build(name, profile)
+def build(name: str, profile: str = "merchant-travel", *, identity_variant: str | None = None) -> dict:
+    with profile_context(profile, identity_variant):
+        return _build(name, profile, identity_variant)
 
 
-def _build(name: str, profile: str) -> dict:
+def _build(name: str, profile: str, identity_variant: str | None = None) -> dict:
     require_profile(profile)
     (app, staging, launcher), unity, baseline = preflight(name, profile)
     staging.mkdir(parents=True)
@@ -473,7 +490,7 @@ def _build(name: str, profile: str) -> dict:
             marker = app / directory / "steam_appid.txt"
             guard.require(not marker.exists(), "Unexpected existing Steam marker in original package.")
             marker.write_text(guard.APP_ID + "\n", encoding="ascii")
-        (app / guard.GUARD_REL).write_text(guard_source(profile), encoding="utf-8")
+        (app / guard.GUARD_REL).write_text(guard_source(profile, identity_variant), encoding="utf-8")
         write_proof(app, source_manifest_sha256=guard.sha(source_manifest), weaver_audit_sha256=guard.sha(audit_path))
         sign_app(app)
         guard.verify_app(app, signature=False)
@@ -489,6 +506,7 @@ def _build(name: str, profile: str) -> dict:
         report = {
             "schemaVersion": 1, "status": "built-and-statically-verified", "builtUtc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "patchProfile": profile,
+            "identityVariant": identity_variant,
             "app": str(app), "launcher": str(launcher), "profile": str(guard.profile_root()),
             "originalContentsManifest": str(source_manifest), "originalContentsManifestSha256": guard.sha(source_manifest),
             "sealedAppManifest": str(sealed), "sealedAppManifestSha256": guard.sha(sealed),

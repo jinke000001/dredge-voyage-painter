@@ -14,6 +14,7 @@ namespace Jinke.DredgeMerchantTravel
         internal const string VoyageIdentifier = "local.jinke.dredge.voyage.qa.20261018";
         internal const string VoyageRevisionIdentifier = "local.jinke.dredge.voyage.qa.20261019";
         internal const string PainterIdentifier = "local.jinke.dredge.voyage.painter.qa.20261019";
+        internal const string ShipStylesIdentifier = "local.jinke.dredge.shipstyles.qa.20261021";
         internal const string Company = "Jinke Local Tests";
         internal const string Product = "DREDGE Merchant Travel QA 20261018";
         internal const string OutputRoot = "/Volumes/T7 Shield/渔帆暗涌REA/output";
@@ -72,7 +73,8 @@ namespace Jinke.DredgeMerchantTravel
             string runtimePath, string home, string currentDirectory, string proofEnvironment, string profileEnvironment)
         {
             string expectedProduct;
-            if (identifier == PainterIdentifier) expectedProduct = "DREDGE Voyage Painter QA 20261019";
+            if (identifier == ShipStylesIdentifier) expectedProduct = "DREDGE Ship Styles QA 20261021";
+            else if (identifier == PainterIdentifier) expectedProduct = "DREDGE Voyage Painter QA 20261019";
             else if (identifier == VoyageRevisionIdentifier) expectedProduct = "DREDGE Voyage QA 20261019";
             else if (identifier == VoyageIdentifier) expectedProduct = "DREDGE Voyage QA 20261018";
             else { RequireEqual(identifier, Identifier, "bundle identifier"); expectedProduct = Product; }

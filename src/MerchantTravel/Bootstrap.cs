@@ -11,7 +11,8 @@ namespace Jinke.DredgeMerchantTravel
         private static bool isolated;
         private static string lastError;
         private static bool startupEntryWritten, startupSuccessWritten;
-        internal static bool PainterEnabled { get { return isolated && Application.identifier == ProfileContract.PainterIdentifier; } }
+        internal static bool PainterEnabled { get { return isolated &&
+            (Application.identifier == ProfileContract.PainterIdentifier || Application.identifier == ProfileContract.ShipStylesIdentifier); } }
 
         // The diagnostic catch always rethrows: mismatch must stop Steam and SaveManager initialization.
         public static void EnsureIsolatedProfile()
@@ -130,7 +131,11 @@ namespace Jinke.DredgeMerchantTravel
             {
                 Jinke.DredgeVoyage.VoyageRuntime.OnSaveReady(owner);
                 Jinke.DredgeVoyage.CargoRefit.ReapplyOwned();
-                if (PainterEnabled) Jinke.DredgePainter.PainterAppearance.OnSaveReady(owner as SaveData);
+                if (PainterEnabled)
+                {
+                    Jinke.DredgePainter.PainterAppearance.OnSaveReady(owner as SaveData);
+                    Jinke.DredgeShipAppearance.ShipAppearance.OnSaveReady(owner as SaveData);
+                }
             }
             catch (Exception ex) { Debug.LogError("[Voyage] BIND_FAILED " + ex); }
         }

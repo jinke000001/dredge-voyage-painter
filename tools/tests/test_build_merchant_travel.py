@@ -397,6 +397,19 @@ class IsolatedFixture(Fixture):
         source.write_text("// changed version")
         self.assertNotEqual(builder.managed_sources(), before)
 
+    def test_ship_appearance_sources_are_fingerprinted_but_test_suites_are_excluded(self):
+        directory = self.root / "src/ShipAppearance"
+        directory.mkdir(parents=True)
+        source = directory / "Boat5MeshFactory.cs"
+        source.write_text("// first geometry")
+        for name in ("Tests", "GeometryTests", "bin", "obj"):
+            (directory / name).mkdir()
+            (directory / name / "Ignored.cs").write_text("// not compiled into the runtime")
+        before = builder.managed_sources()
+        self.assertEqual(set(before), {"src/ShipAppearance/Boat5MeshFactory.cs"})
+        source.write_text("// changed geometry")
+        self.assertNotEqual(builder.managed_sources(), before)
+
     def test_voyage_guard_has_a_distinct_fixed_profile_and_preserves_merchant_guard(self):
         original_identifier = guard.IDENTIFIER
         selected = builder.guard_for_profile("voyage-experience")

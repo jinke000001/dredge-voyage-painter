@@ -71,9 +71,14 @@ namespace Jinke.DredgeVoyage
         private DredgePlayerActionPress detailBack;
         private readonly Dictionary<Selectable, Navigation> previousNavigation = new Dictionary<Selectable, Navigation>();
         private bool initialized;
-        private bool details;
-        private bool dialogOpen;
+        private readonly DryDockPageState pages = new DryDockPageState();
+        private DryDockViewFactory view;
+        private DryDockAppearancePage appearance;
+        private bool details { get { return pages.Current == DryDockPage.Cargo; } }
+        private bool dialogOpen { get { return pages.ModalOpen; } set { pages.SetModal(value); } }
+        private Selectable treeFocusTarget;
         private bool nativeFocusWasEnabled;
+        private bool restoreFocusOnShow;
         private bool backLease;
         private bool destroying;
         private DredgeInputManager leaseInput;
@@ -106,6 +111,8 @@ namespace Jinke.DredgeVoyage
             nativeBack = CargoRefitUI.Read<DredgePlayerActionPress>(owner, "backAction");
             nativeFocus = CargoRefitUI.Read<ControllerFocusGrabber>(owner, "controllerFocusGrabber");
             if (string.IsNullOrEmpty(fontTable) || nativeBack == null || nativeFocus == null) return;
+            treeFocusTarget = nativeFocus.selectThis;
+            view = new DryDockViewFactory(buttonTemplate, fontTable, fontEntry);
             try
             {
                 window = owner; nodes = tree.gameObject;
@@ -135,6 +142,11 @@ namespace Jinke.DredgeVoyage
                 detailBack = new DredgePlayerActionPress("prompt.back", game.Input.Controls.Back)
                 { showInControlArea = true, evaluateWhenPaused = true, priority = 1 };
                 detailBack.OnPressComplete += CloseDetails;
+                if (Jinke.DredgeMerchantTravel.Bootstrap.PainterEnabled)
+                {
+                    appearance = new DryDockAppearancePage(view, frame, OpenAppearance, CloseDetails, CanInteractWithAppearance);
+                    Position(entry.transform as RectTransform, Vector2.one, Vector2.one, new Vector2(250, 44), new Vector2(-290, -8));
+                }
                 window.OnShowComplete += OnNativeShown;
                 window.OnHideComplete += OnNativeHidden;
                 ApplicationEvents.Instance.OnLocaleChanged += OnLocaleChanged;
@@ -145,6 +157,7 @@ namespace Jinke.DredgeVoyage
             {
                 if (entry != null) Destroy(entry.gameObject);
                 if (content != null) Destroy(content.gameObject);
+                if (appearance != null) { appearance.Dispose(); appearance = null; }
                 if (!didLogFailure) { didLogFailure = true; Debug.LogError("[VoyageCargoUI] Install: " + error); }
             }
         }
@@ -152,14 +165,24 @@ namespace Jinke.DredgeVoyage
         internal void RefreshAvailability()
         {
             if (!initialized || window == null) return;
+            GameManager game = GameManager.Instance;
+            if (game == null || game.Input == null) { CloseSubpage(true); return; }
             CargoRefitPreview preview = CargoRefit.GetPreview();
             entry.gameObject.SetActive(preview != null);
-            entry.Interactable = !details && preview != null && window.IsShowing &&
-                GameManager.Instance.Input.GetActiveActionLayer() == ActionLayer.POPUP_WINDOW;
-            if (!window.IsShowing) return;
-            if (!details) { ConnectNavigation(); return; }
-            if (!ReferenceEquals(shownSave, GameManager.Instance.SaveData) || preview == null) { CloseDetails(); return; }
-            RefreshDetail(preview);
+            bool canEnter = !pages.IsOpen && CanReturnToWindow &&
+                game.Input.GetActiveActionLayer() == ActionLayer.POPUP_WINDOW;
+            entry.Interactable = canEnter && preview != null;
+            if (appearance != null)
+            {
+                appearance.Entry.gameObject.SetActive(Jinke.DredgeMerchantTravel.Bootstrap.PainterEnabled);
+                appearance.Entry.Interactable = canEnter;
+            }
+            if (!window.IsShowing) { CloseSubpage(true); return; }
+            if (!pages.IsOpen) { ConnectNavigation(); return; }
+            if (!ReferenceEquals(shownSave, game.SaveData) || (details && preview == null))
+            { CloseSubpage(true); return; }
+            if (details) RefreshDetail(preview);
+            else if (appearance != null) appearance.Refresh(CanInteractWithAppearance());
         }
 
         private void OnNativeShown()
@@ -167,9 +190,18 @@ namespace Jinke.DredgeVoyage
             if (!initialized) return;
             lastStatus = null;
             RefreshAvailability();
+            if (restoreFocusOnShow && CanReturnToWindow && nativeFocus != null)
+            {
+                restoreFocusOnShow = false;
+                nativeFocus.enabled = nativeFocusWasEnabled;
+            }
         }
 
-        private void OnNativeHidden() { CloseDetails(); RestoreNavigation(); }
+        private void OnNativeHidden()
+        {
+            CloseSubpage(true); RestoreNavigation();
+            if (nativeFocus != null) nativeFocus.selectThis = treeFocusTarget;
+        }
 
         private void OnLocaleChanged(Locale locale)
         {
@@ -178,53 +210,113 @@ namespace Jinke.DredgeVoyage
             legend.text = CargoRefitText.Value("legend", "格位示意  ·  + 为已扩建，空框为下一次");
             SetButtonText(entry, "entry", "货舱整备");
             SetButtonText(back, "back", "返回升级树");
+            if (appearance != null) appearance.Refresh(CanInteractWithAppearance());
             RefreshAvailability();
         }
 
         private void OpenDetails()
         {
-            if (!initialized || details || dialogOpen || !window.IsShowing) return;
-            GameManager game = GameManager.Instance;
-            if (game.Input.GetActiveActionLayer() != ActionLayer.POPUP_WINDOW) return;
             CargoRefitPreview preview = CargoRefit.GetPreview();
-            if (preview == null) return;
-            shownSave = game.SaveData;
-            nativeFocusWasEnabled = nativeFocus.enabled;
-            nativeFocusTarget = nativeFocus.selectThis;
-            nativeFocus.enabled = false;
-            leaseInput = game.Input;
-            game.Input.RemoveActionListener(new DredgePlayerActionBase[] { nativeBack }, ActionLayer.POPUP_WINDOW);
-            game.Input.AddActionListener(new DredgePlayerActionBase[] { detailBack }, ActionLayer.POPUP_WINDOW);
-            backLease = true;
-            details = true; lastStatus = null; drawnTier = 0;
-            nodes.SetActive(false); content.gameObject.SetActive(true); entry.Interactable = false;
+            if (preview == null || !OpenSubpage(DryDockPage.Cargo)) return;
+            lastStatus = null; drawnTier = 0;
             RefreshDetail(preview);
             Select(back.Button);
         }
 
+        private void OpenAppearance()
+        {
+            if (appearance == null || !Jinke.DredgeMerchantTravel.Bootstrap.PainterEnabled ||
+                !OpenSubpage(DryDockPage.Appearance)) return;
+            appearance.Begin();
+            Select(appearance.Back.Button);
+        }
+
+        private bool OpenSubpage(DryDockPage page)
+        {
+            if (!initialized || !CanReturnToWindow) return false;
+            GameManager game = GameManager.Instance;
+            if (game == null || game.Input == null || !pages.TryOpen(page, game.SaveData, window.IsShowing,
+                game.Input.GetActiveActionLayer() == ActionLayer.POPUP_WINDOW)) return false;
+            shownSave = game.SaveData;
+            nativeFocusWasEnabled = nativeFocus.enabled;
+            nativeFocusTarget = nativeFocus.selectThis;
+            try
+            {
+                nativeFocus.enabled = false;
+                leaseInput = game.Input;
+                game.Input.RemoveActionListener(new DredgePlayerActionBase[] { nativeBack }, ActionLayer.POPUP_WINDOW);
+                backLease = true;
+                game.Input.AddActionListener(new DredgePlayerActionBase[] { detailBack }, ActionLayer.POPUP_WINDOW);
+                nodes.SetActive(false);
+                content.gameObject.SetActive(page == DryDockPage.Cargo);
+                if (appearance != null) appearance.Content.gameObject.SetActive(page == DryDockPage.Appearance);
+                entry.Interactable = false;
+                if (appearance != null) appearance.Entry.Interactable = false;
+                return true;
+            }
+            catch { CloseSubpage(true); throw; }
+        }
+
+        private bool CanInteractWithAppearance()
+        {
+            GameManager game = GameManager.Instance;
+            return CanReturnToWindow && pages.Current == DryDockPage.Appearance && !dialogOpen &&
+                appearance != null && window != null && window.IsShowing && game != null &&
+                ReferenceEquals(shownSave, game.SaveData) && game.Input != null &&
+                game.Input.GetActiveActionLayer() == ActionLayer.POPUP_WINDOW;
+        }
+
+        private bool CanReturnToWindow
+        {
+            get
+            {
+                return !destroying && isActiveAndEnabled && gameObject.activeInHierarchy &&
+                    window != null && window.IsShowing && window.gameObject.activeInHierarchy;
+            }
+        }
+
         private void CloseDetails()
         {
-            if (!details && !backLease) return;
-            details = false;
+            GameManager game = GameManager.Instance;
+            if (game == null || game.Input == null || game.Input.GetActiveActionLayer() != ActionLayer.POPUP_WINDOW) return;
+            CloseSubpage(false);
+        }
+
+        private void CloseSubpage(bool force)
+        {
+            DryDockPage closing = pages.Current;
+            if (!pages.Close(force) && (pages.IsOpen || !backLease)) return;
+            bool interactiveReturn = CanReturnToWindow;
+            BasicButtonWrapper returnEntry = closing == DryDockPage.Appearance && appearance != null ? appearance.Entry : entry;
             if (backLease && leaseInput != null)
             {
                 leaseInput.RemoveActionListener(new DredgePlayerActionBase[] { detailBack }, ActionLayer.POPUP_WINDOW);
-                if (!destroying && window != null && window.IsShowing)
+                if (interactiveReturn)
                     leaseInput.AddActionListener(new DredgePlayerActionBase[] { nativeBack }, ActionLayer.POPUP_WINDOW);
             }
             backLease = false;
             leaseInput = null;
             if (content != null) content.gameObject.SetActive(false);
+            if (appearance != null && appearance.Content != null) appearance.Content.gameObject.SetActive(false);
             if (nodes != null) nodes.SetActive(true);
-            if (!destroying && nativeFocus != null)
+            if (nativeFocus != null)
             {
-                nativeFocus.selectThis = entry.Button;
-                nativeFocus.enabled = nativeFocusWasEnabled;
-                StartCoroutine(RestoreNativeFocusTarget());
+                nativeFocus.selectThis = interactiveReturn && returnEntry != null ? returnEntry.Button : nativeFocusTarget;
+                if (interactiveReturn)
+                {
+                    nativeFocus.enabled = nativeFocusWasEnabled;
+                    StartCoroutine(RestoreNativeFocusTarget(returnEntry == null ? null : returnEntry.Button, pages.Generation));
+                }
+                else
+                {
+                    // Enabling a focus grabber can itself start a selection
+                    // coroutine. Defer it until the next visible native Show.
+                    restoreFocusOnShow = !destroying && nativeFocusWasEnabled;
+                }
             }
-            if (entry != null) entry.Interactable = true;
-            if (!destroying && window != null && window.IsShowing) { ConnectNavigation(); Select(entry.Button); }
             shownSave = null;
+            if (interactiveReturn)
+            { RefreshAvailability(); if (returnEntry != null) Select(returnEntry.Button); }
         }
 
         private void RefreshDetail(CargoRefitPreview preview)
@@ -242,6 +334,7 @@ namespace Jinke.DredgeVoyage
             bool removable = CargoRefit.CanRemove(out removeReason);
             purchase.Interactable = possible && !dialogOpen;
             remove.Interactable = removable && !dialogOpen;
+            back.Interactable = !dialogOpen;
             string notice = (!possible && preview.Level < preview.MaxLevel ? reason : null) ??
                 (preview.Owned && !removable ? removeReason : null) ?? lastStatus ?? reason ?? "整备结果会随当前航行进度保存。";
             status.text = CargoRefitText.Message(notice);
@@ -255,13 +348,17 @@ namespace Jinke.DredgeVoyage
 
         private void Confirm(bool removing)
         {
-            if (dialogOpen || !details || !ReferenceEquals(shownSave, GameManager.Instance.SaveData)) return;
+            GameManager owner = GameManager.Instance;
+            if (dialogOpen || !details || window == null || !window.IsShowing || owner == null || owner.Input == null ||
+                owner.Input.GetActiveActionLayer() != ActionLayer.POPUP_WINDOW || !ReferenceEquals(shownSave, owner.SaveData)) return;
             CargoRefitPreview preview = CargoRefit.GetPreview();
             if (preview == null) return;
             string reason;
             bool possible = removing ? CargoRefit.CanRemove(out reason) : CargoRefit.CanPurchase(out reason);
             if (!possible) { lastStatus = reason; RefreshDetail(preview); return; }
             int shownLevel = preview.Level;
+            int pageGeneration = pages.Generation;
+            SaveData confirmingSave = shownSave;
             string key = CargoRefitText.Put(removing ? "confirm-remove-step" : "confirm-purchase-step", removing
                 ? "收起最后扩建的两个空格？\n\n已付费用不退还。更早扩建的格位与原有物品保持原样。"
                 : "支付 $" + preview.Cost.ToString("0") + "，再增加两个普通货物格？\n\n本次完成后共增加 " + (preview.AddedCells + 2) + " 格。费用随整备次数增加。",
@@ -281,7 +378,7 @@ namespace Jinke.DredgeVoyage
             {
                 GameManager.Instance.DialogManager.ShowDialog(options, result =>
                 {
-                    if (this == null) return;
+                    if (this == null || !pages.Matches(DryDockPage.Cargo, confirmingSave, pageGeneration)) return;
                     dialogOpen = false;
                     GameManager game = GameManager.Instance;
                     if (game == null || !details || !ReferenceEquals(shownSave, game.SaveData)) return;
@@ -356,8 +453,12 @@ namespace Jinke.DredgeVoyage
 
         private void ConnectNavigation()
         {
-            if (details || entry == null || !entry.gameObject.activeInHierarchy) return;
+            if (pages.IsOpen || nodes == null) return;
             RestoreNavigation();
+            var entries = new List<BasicButtonWrapper>();
+            if (entry != null && entry.gameObject.activeInHierarchy && entry.Interactable) entries.Add(entry);
+            if (appearance != null && appearance.Entry.gameObject.activeInHierarchy && appearance.Entry.Interactable) entries.Add(appearance.Entry);
+            if (entries.Count == 0) return;
             Selectable nearest = null; float highest = float.NegativeInfinity;
             foreach (UpgradeNodeUI node in nodes.GetComponentsInChildren<UpgradeNodeUI>(false))
             {
@@ -365,11 +466,29 @@ namespace Jinke.DredgeVoyage
                 if (!button.IsInteractable()) continue;
                 if (button.transform.position.y > highest) { highest = button.transform.position.y; nearest = button; }
             }
-            if (nearest == null) return;
-            previousNavigation[nearest] = nearest.navigation;
-            Navigation link = nearest.navigation; link.mode = Navigation.Mode.Explicit; link.selectOnUp = entry.Button; nearest.navigation = link;
-            entry.Navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = nearest, selectOnLeft = nearest };
-            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == null) Select(nearest);
+            if (nearest != null)
+            {
+                previousNavigation[nearest] = nearest.navigation;
+                Navigation link = nearest.navigation; link.mode = Navigation.Mode.Explicit;
+                link.selectOnUp = entries[0].Button; nearest.navigation = link;
+            }
+            for (int i = 0; i < entries.Count; i++)
+                entries[i].Navigation = new Navigation { mode = Navigation.Mode.Explicit,
+                    selectOnLeft = i > 0 ? entries[i - 1].Button : nearest,
+                    selectOnRight = i + 1 < entries.Count ? entries[i + 1].Button : nearest,
+                    selectOnDown = nearest, selectOnUp = nearest };
+            // At the final hull tier every native node may be disabled. Keep a
+            // live default target for controller activation/input-mode changes.
+            if (nativeFocus != null && (nativeFocus.selectThis == null ||
+                !nativeFocus.selectThis.IsInteractable() || !nativeFocus.selectThis.gameObject.activeInHierarchy))
+                nativeFocus.selectThis = nearest ?? entries[0].Button;
+            if (EventSystem.current != null)
+            {
+                GameObject current = EventSystem.current.currentSelectedGameObject;
+                Selectable selected = current == null ? null : current.GetComponent<Selectable>();
+                if (selected == null || !selected.IsInteractable() || !selected.gameObject.activeInHierarchy)
+                    Select(nearest ?? entries[0].Button);
+            }
         }
 
         private void RestoreNavigation()
@@ -380,28 +499,9 @@ namespace Jinke.DredgeVoyage
 
         private BasicButtonWrapper CreateButton(Transform parent, string name, string key, string text, Action clicked)
         {
-            GameObject instance = Instantiate(buttonTemplate, parent);
-            instance.name = name; instance.SetActive(false);
-            BasicButtonWrapper wrapper = instance.GetComponent<BasicButtonWrapper>();
-            CargoRefitUI.Set(wrapper, "automaticallyAnimateTransition", false);
-            CargoRefitUI.Set(wrapper, "randomizeTransitionInDelay", false);
-            CargoRefitUI.Set(wrapper, "transitionOutOnClick", false);
-            CargoRefitUI.Set(wrapper, "needsAnimatingWhenReEnabling", false);
-            CargoRefitUI.Set(wrapper, "awaitingTransition", false);
-            object effect = CargoRefitUI.Read<object>(wrapper, "transitionEffect");
-            if (effect != null)
-            {
-                PropertyInfo factor = effect.GetType().GetProperty("effectFactor");
-                if (factor != null && factor.CanWrite) factor.SetValue(effect, 1f, null);
-            }
-            wrapper.Button.onClick = new Button.ButtonClickedEvent();
-            wrapper.OnClick = clicked;
-            wrapper.SetCanBeClicked(true);
-            SetButtonText(wrapper, key, text);
-            foreach (TextMeshProUGUI label in instance.GetComponentsInChildren<TextMeshProUGUI>(true))
-            { label.fontSize = 25; label.enableAutoSizing = true; label.fontSizeMin = 20; label.fontSizeMax = 25; }
-            instance.SetActive(true);
-            return wrapper;
+            BasicButtonWrapper button = view.Button(parent, name, "cargo." + key, text, text, clicked);
+            SetButtonText(button, key, text);
+            return button;
         }
 
         private static void SetButtonText(BasicButtonWrapper button, string key, string value)
@@ -420,54 +520,39 @@ namespace Jinke.DredgeVoyage
         }
 
         private TextMeshProUGUI CreateText(Transform parent, string name, string text, float fontSize, Vector2 position, Vector2 size, TextAlignmentOptions alignment)
-        {
-            RectTransform rect = NewRect(parent, name);
-            Position(rect, new Vector2(.5f, .5f), new Vector2(.5f, .5f), size, position);
-            rect.gameObject.SetActive(false);
-            TextMeshProUGUI label = rect.gameObject.AddComponent<TextMeshProUGUI>();
-            TMP_FontAsset font = LocalizationSettings.AssetDatabase.GetLocalizedAsset<TMP_FontAsset>(fontTable, fontEntry);
-            if (font == null) throw new InvalidOperationException("原生本地化字体尚未准备好。");
-            // Reusing the asset preserves its native glyph/fallback chain. Its
-            // material matches this atlas; do not carry over an English atlas.
-            label.font = font; label.fontSharedMaterial = font.material;
-            label.text = text; label.fontSize = fontSize; label.alignment = alignment;
-            label.color = GameManager.Instance.LanguageManager.GetColor(DredgeColorTypeEnum.NEUTRAL);
-            label.enableWordWrapping = true; label.raycastTarget = false;
-            LocalizeFontBypass binding = rect.gameObject.AddComponent<LocalizeFontBypass>();
-            binding.textField = label; binding.tableString = fontTable; binding.tableEntryString = fontEntry;
-            // All fields are assigned before native OnEnable subscribes and
-            // resolves the current locale, including future language changes.
-            rect.gameObject.SetActive(true);
-            return label;
-        }
+        { return view.Text(parent, name, text, fontSize, position, size, alignment); }
 
         private static RectTransform NewRect(Transform parent, string name)
-        {
-            var result = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-            result.SetParent(parent, false); return result;
-        }
+        { return DryDockViewFactory.Rect(parent, name); }
 
         private static void Position(RectTransform rect, Vector2 anchor, Vector2 pivot, Vector2 size, Vector2 position)
-        { rect.anchorMin = rect.anchorMax = anchor; rect.pivot = pivot; rect.sizeDelta = size; rect.anchoredPosition = position; }
+        { DryDockViewFactory.Position(rect, anchor, pivot, size, position); }
 
         private static void Select(Selectable selectable)
         { if (selectable != null && EventSystem.current != null) EventSystem.current.SetSelectedGameObject(selectable.gameObject); }
 
-        private IEnumerator RestoreNativeFocusTarget()
+        private IEnumerator RestoreNativeFocusTarget(Selectable returnTarget, int generation)
         {
             // Native focus selects after EndOfFrame. Keep the entry as its target
             // for that selection, then preserve the original tree's next-open target.
             yield return null;
-            if (!details && nativeFocus != null && entry != null && nativeFocus.selectThis == entry.Button)
-                nativeFocus.selectThis = nativeFocusTarget;
+            if (!pages.IsOpen && pages.Generation == generation && nativeFocus != null &&
+                nativeFocus.selectThis == returnTarget) nativeFocus.selectThis = nativeFocusTarget;
+        }
+
+        private void OnDisable()
+        {
+            if (!initialized) return;
+            CloseSubpage(true); RestoreNavigation();
         }
 
         private void OnDestroy()
         {
             destroying = true;
-            CloseDetails(); RestoreNavigation();
+            CloseSubpage(true); RestoreNavigation();
             if (initialized && ApplicationEvents.Instance != null) ApplicationEvents.Instance.OnLocaleChanged -= OnLocaleChanged;
             if (window != null) { window.OnShowComplete -= OnNativeShown; window.OnHideComplete -= OnNativeHidden; }
+            if (appearance != null) appearance.Dispose();
         }
     }
 

@@ -16,7 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="*.cs" Exclude="._*" />
-    <Reference Include="mscorlib;System;System.Core;netstandard;Assembly-CSharp;Assembly-CSharp-firstpass;Newtonsoft.Json;UnityEngine;UnityEngine.CoreModule;UnityEngine.PhysicsModule;UnityEngine.IMGUIModule;UnityEngine.InputLegacyModule;UnityEngine.UIModule;UnityEngine.UI;UnityEngine.TextRenderingModule;Unity.TextMeshPro;Unity.Localization;Unity.ResourceManager;Unity.Addressables;Sirenix.Serialization;Sirenix.OdinInspector.Attributes;Cinemachine;InControl;YarnSpinner.Unity;YarnSpinner">
+    <Reference Include="mscorlib;System;System.Core;netstandard;Assembly-CSharp;Assembly-CSharp-firstpass;Newtonsoft.Json;UnityEngine;UnityEngine.CoreModule;UnityEngine.PhysicsModule;UnityEngine.IMGUIModule;UnityEngine.InputLegacyModule;UnityEngine.UIModule;UnityEngine.UI;UnityEngine.TextRenderingModule;UnityEngine.ImageConversionModule;UnityEngine.ScreenCaptureModule;Unity.TextMeshPro;Unity.Localization;Unity.ResourceManager;Unity.Addressables;Sirenix.Serialization;Sirenix.OdinInspector.Attributes;Cinemachine;InControl;YarnSpinner.Unity;YarnSpinner">
       <HintPath>$(GameManagedDir)/%(Identity).dll</HintPath><Private>false</Private>
     </Reference>
   </ItemGroup>

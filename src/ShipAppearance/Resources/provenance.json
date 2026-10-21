@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "owned_original_art": true,
+  "original_game_assets_included": false,
+  "resources": [
+    {
+      "style": "cthulhu",
+      "resource": "cthulhu-v1.bin",
+      "resource_sha256": "02e970fd262ff6541e7460c85bf13f3d3c0d6919a7f7bc9e925c91d20b65a3db",
+      "resource_bytes": 2380324,
+      "source_sha256": "d41f456f371c4a21dcea2f9329d55ba87c0278a6037599fbaba7e6db60a50542",
+      "exporter_sha256": "97704603902382e80d76e39da793aa5565de7469087a7ab8209d736286da18b2",
+      "blender": "5.2.2 LTS"
+    },
+    {
+      "style": "cyberpunk",
+      "resource": "cyberpunk-v1.bin",
+      "resource_sha256": "a6f46ce42e4cad9a74a5a152a4131eb177596e60e9591aea7684ef06149f8eef",
+      "resource_bytes": 2191972,
+      "source_sha256": "380afe9d378ea74c5a2438a3480e1438b70d25843820b0044d15c5f86a16768e",
+      "exporter_sha256": "97704603902382e80d76e39da793aa5565de7469087a7ab8209d736286da18b2",
+      "blender": "5.2.2 LTS"
+    }
+  ],
+  "revision": "forelamp-mount-r3"
+}

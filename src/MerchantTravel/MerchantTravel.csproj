@@ -11,7 +11,7 @@
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <FrameworkPathOverride>$(MSBuildThisFileDirectory)../../Contents/Resources/Data/Managed</FrameworkPathOverride>
     <GameManagedDir Condition="'$(GameManagedDir)' == ''">$(MSBuildThisFileDirectory)../../Contents/Resources/Data/Managed</GameManagedDir>
-    <Version>2.2.0</Version>
+    <Version>2.3.0-preview.4</Version>
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
@@ -20,6 +20,9 @@
     <Compile Include="*.cs" Exclude="._*" />
     <Compile Include="../VoyageExperience/*.cs" Exclude="../VoyageExperience/._*" />
     <Compile Include="../Painter/*.cs" Exclude="../Painter/._*" />
+    <Compile Include="../ShipAppearance/*.cs" Exclude="../ShipAppearance/._*" />
+    <EmbeddedResource Include="../ShipAppearance/Resources/cthulhu-v1.bin" LogicalName="Jinke.ShipAppearance.cthulhu-v1.bin" />
+    <EmbeddedResource Include="../ShipAppearance/Resources/cyberpunk-v1.bin" LogicalName="Jinke.ShipAppearance.cyberpunk-v1.bin" />
     <Compile Include="../CosmeticPack/AtlasLayout.cs;../CosmeticPack/PackContract.cs;../CosmeticPack/SkinJson.cs;../CosmeticPack/SkinAssets.cs;../CosmeticPack/RendererOverrides.cs" />
     <Reference Include="mscorlib"><HintPath>$(GameManagedDir)/mscorlib.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="System"><HintPath>$(GameManagedDir)/System.dll</HintPath><Private>false</Private></Reference>

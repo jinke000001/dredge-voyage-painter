@@ -40,6 +40,9 @@ namespace Jinke.DredgeVoyage
 
         private void Update()
         {
+            // Player recreation can happen between the existing half-second UI
+            // checks. Bind/restore visual ownership on the next frame instead.
+            Jinke.DredgeShipAppearance.ShipAppearance.Tick();
             if (Time.unscaledTime < nextCheck) return;
             nextCheck = Time.unscaledTime + 0.5f;
             try
@@ -101,7 +104,11 @@ namespace Jinke.DredgeVoyage
         {
             fishing.Restore(); TimeTuning.Restore(); store.Dispose(); enteredWorld = false;
         }
-        private void OnDestroy() { ResetSession(); if (instance == this) instance = null; }
+        private void OnDestroy()
+        {
+            Jinke.DredgeShipAppearance.ShipAppearance.ResetSession();
+            ResetSession(); if (instance == this) instance = null;
+        }
         internal static string Diagnostics()
         {
             return JsonConvert.SerializeObject(new { ready = Ready, settings = Current, fishingReady = instance != null && instance.fishing.IsReady,

@@ -157,6 +157,8 @@ namespace Jinke.DredgeMerchantTravel.QA
             var g = GameManager.Instance;
             string action = (string)c["action"];
             if (action == "snapshot") return "observed";
+            if (action != null && action.StartsWith("ship-", StringComparison.Ordinal))
+                return ShipAppearanceProbe.Execute(c, bootstrap, output);
             if (action != null && action.StartsWith("painter-", StringComparison.Ordinal))
             {
                 Require(Application.identifier == PainterIdentifier, "Painter commands require the strict Painter QA identity");

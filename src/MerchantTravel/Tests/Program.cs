@@ -184,7 +184,8 @@ internal static class Program
                 foreach (var pair in new[] {
                     new[] { ProfileContract.VoyageIdentifier, "DREDGE Voyage QA 20261018" },
                     new[] { ProfileContract.VoyageRevisionIdentifier, "DREDGE Voyage QA 20261019" },
-                    new[] { ProfileContract.PainterIdentifier, "DREDGE Voyage Painter QA 20261019" } })
+                    new[] { ProfileContract.PainterIdentifier, "DREDGE Voyage Painter QA 20261019" },
+                    new[] { ProfileContract.ShipStylesIdentifier, "DREDGE Ship Styles QA 20261021" } })
                 {
                     try
                     {
